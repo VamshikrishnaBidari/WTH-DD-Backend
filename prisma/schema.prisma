@@ -1,0 +1,569 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum genderEnum {
+  male
+  female
+  other
+}
+
+enum OrderStatus {
+  pending
+  success
+  failed
+}
+
+enum UserType {
+  TEACHER
+  STUDENT
+}
+
+enum LicenseStatus {
+  Pending
+  Completed
+  InProgress
+}
+
+enum Rating {
+  Poor
+  Average
+  Good
+  Moderate
+  Excellent
+}
+
+enum Provider {
+  google
+  credentials
+}
+
+enum studentType {
+  new
+  old
+}
+
+enum Holiday {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+  None
+}
+
+model LicenseProcess {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], name: "UserToLicenseProcess")
+  documentVerification String?
+  llApplication        String?
+  llTestBooking        String?
+  llTestDay            String?
+  dlApplication        String?
+  dlTestBooking        String?
+  dlTestDay            String?
+  submitted            Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model User {
+  id               String                  @id @default(cuid())
+  name             String
+  age              String?
+  phoneNumber      String?                 @unique
+  image            String?
+  location         Json?
+  password         String?
+  email            String                  @unique
+  clerkId          String?
+  gender           genderEnum?
+  refreshToken     String?
+  orders           Order[]
+  studentType      studentType?
+  purpose          String?
+  progress         LicenseProcess?         @relation("UserToLicenseProcess")
+  weekCalendar     weekCalendarUser?
+  courses          Course[]
+  reviews          Review[]
+  llAppn           LLAppn?                 @relation("UserToLLAppn")
+  dlAppn           DLAppn?                 @relation("UserToDLAppn")
+  schoolId         String?
+  googleId         String?                 @unique
+  provider         Provider                @default(credentials)
+  Document         LicenseStatus?          @default(Pending)
+  LL               LicenseStatus?          @default(Pending)
+  RTO              LicenseStatus?          @default(Pending)
+  License          LicenseStatus?          @default(Pending)
+  isReviewed       Boolean                 @default(true)
+  Holiday          Holiday?                @default(None)
+  courseFee        Float?                  @default(0)
+  licenseFee       Float?                  @default(0)
+  extraFee         Float?                  @default(0)
+  pushSubscription String?
+  mockTestScore    Int?
+  drivingLicense   String?
+  learnersLicense  String?
+  issues           Issue[]
+  optrAssistLogs   OperatorAssistanceLog[] @relation("StudentToAssistanceLog")
+  school           DrivingSchool?          @relation(fields: [schoolId], references: [id])
+  branchId         String?
+  branch           Branch?                 @relation(fields: [branchId], references: [id])
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  PaymentHistory   PaymentHistory[]
+}
+
+model Teacher {
+  id                 String         @id @default(cuid())
+  name               String
+  age                String?
+  phoneNumber        String?        @unique
+  image              String?
+  location           Json?
+  password           String
+  gender             genderEnum
+  email              String         @unique
+  courses            Course[]
+  refreshToken       String?
+  attendence         DateTime[]
+  schoolId           String
+  school             DrivingSchool  @relation(fields: [schoolId], references: [id])
+  branchId           String?
+  branch             Branch?        @relation(fields: [branchId], references: [id])
+  Holiday            Holiday?       @default(None)
+  teacherId          String?
+  reviews            Review[]
+  teacherCalendar    Calendar[]
+  canceledClasses    Int            @default(0)
+  classesRescheduled Int            @default(0)
+  experience         Int
+  availability       Availability[]
+  licenseNumber      String?
+  registrationNumber String[]
+  vehicle            String[]
+  expertise          String[] // see this once
+  profilePicture     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model DrivingSchool {
+  id                    String                 @id @default(cuid())
+  name                  String
+  location              String?
+  schoolName            String?
+  schoolEmail           String?
+  schoolLogo            String?
+  email                 String                 @unique
+  image                 String?
+  phoneNumber           String
+  password              String
+  expertiseIn           String?
+  yearsOfExperience     Int?
+  dateJoined            String?
+  syllabus              Syllabus[]
+  vehicleSyllabus       VSyllabus[]
+  courseCombos          CourseCombo[]
+  licenseSyllabus       LicenseSyllabus[]
+  licenseSyllabusCombos LicenseSyllabusCombo[]
+  refreshToken          String?
+  termsAndCondition     String?
+  revenue               Float                  @default(0)
+  Holiday               Holiday?               @default(None)
+  teachers              Teacher[]
+  users                 User[]
+  slots                 Slots[]
+  calendar              Calendar[]
+  operator              Operator[]
+  branches              Branch[]
+  teacherCount          Int                    @default(0)
+  userCount             Int                    @default(0)
+  issues                Issue[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model PaymentHistory {
+  id            String   @id @default(cuid())
+  feeType       String
+  amount        Float
+  paymentMethod String
+  Date          String
+  description   String?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CourseCombo {
+  id             String        @id @default(cuid())
+  title          String
+  description    String?
+  price          Float
+  noOfClassesV1    Int?
+  noOfClassesV2    Int?
+  timePerSession String?
+  schoolId       String
+  school         DrivingSchool @relation(fields: [schoolId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model LicenseSyllabus {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  schoolId    String
+  school      DrivingSchool @relation(fields: [schoolId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model LicenseSyllabusCombo {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  schoolId    String
+  school      DrivingSchool @relation(fields: [schoolId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Branch {
+  id            String        @id @default(cuid())
+  name          String
+  location      String?
+  phoneNumber   String?
+  branchNo      Int?
+  email         String?       @unique
+  image         String?
+  branchManager String?
+  schoolId      String
+  school        DrivingSchool @relation(fields: [schoolId], references: [id])
+  isActive      Boolean       @default(true)
+  revenue       Float         @default(0)
+  Holiday       Holiday?      @default(None)
+  teachers      Teacher[]
+  users         User[]
+  operators     Operator[]
+  syllabus      Syllabus[]
+  vSyllabus     VSyllabus[]
+  slots         Slots[]
+  calendars     Calendar[]
+  issues        Issue[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Operator {
+  id            String                  @id @default(cuid())
+  name          String
+  phoneNumber   String?
+  email         String                  @unique
+  image         String?
+  password      String
+  schoolId      String
+  school        DrivingSchool           @relation(fields: [schoolId], references: [id])
+  branchId      String?
+  branch        Branch?                 @relation(fields: [branchId], references: [id])
+  Holiday       Holiday?                @default(None)
+  refreshToken  String?
+  operatorId    String?
+  expertiseIn   String?
+  workingDays   String?
+  workingHours  String?
+  experience    Int?
+  rating        Int                     @default(5)
+  LLcount       Int                     @default(0)
+  DLcount       Int                     @default(0)
+  studentsCount Int                     @default(0)
+  assistLogs    OperatorAssistanceLog[] @relation("OperatorToAssistanceLog")
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+}
+
+model Availability {
+  id           String  @id @default(cuid())
+  workingDays  String
+  workingHours String
+  teacherId    String
+  teacher      Teacher @relation(fields: [teacherId], references: [id])
+}
+
+model Syllabus {
+  id               String        @id @default(cuid())
+  compId           Int           @default(autoincrement())
+  vehicle          String
+  price            Float
+  classes          Int
+  theoryClasses    Int           @default(0)
+  practicalClasses Int           @default(0)
+  LLamount         Float
+  classesAmount    Float
+  LicenseAmount    Float
+  timePeriod       String
+  description      String
+  schoolId         String
+  school           DrivingSchool @relation(fields: [schoolId], references: [id])
+  branchId         String?
+  branch           Branch?       @relation(fields: [branchId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id                 String         @id @default(cuid())
+  userId             String?
+  vehicle            String
+  type               String
+  user               User?          @relation(fields: [userId], references: [id])
+  teacherId          String?
+  teacher            Teacher?       @relation(fields: [teacherId], references: [id])
+  amount             Float          @default(0)
+  classesTaken       Int            @default(0)
+  classesTotal       Int            @default(1)
+  studentAttendence  Int            @default(0)
+  teacherAttendence  Int            @default(0)
+  pendingAmount      Float          @default(0)
+  weekClassLimit     Int            @default(8)
+  installments       Boolean        @default(false)
+  completed          Boolean        @default(false)
+  isReviewed         Boolean        @default(false)
+  stars              Int            @default(0)
+  history            ClassHistory[]
+  classDuration      Int
+  canceledClasses    Int            @default(0)
+  classesRescheduled Int            @default(0)
+  order              Order[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  expiresAt          DateTime
+  classStart         DateTime
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  type       String
+  user       User        @relation(fields: [userId], references: [id])
+  courseId   String      @unique
+  course     Course      @relation(fields: [courseId], references: [id])
+  razorpayId String      @unique
+  status     OrderStatus @default(pending)
+  amount     Float
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model VehicleSyllabus {
+  id          String    @id @default(cuid())
+  day         Int
+  title       String
+  keyPoints   String?
+  description String
+  syllabusId  String
+  syllabus    VSyllabus @relation(fields: [syllabusId], references: [id])
+}
+
+model VSyllabus {
+  id              String            @id @default(cuid())
+  vehicle         String
+  schoolId        String
+  school          DrivingSchool     @relation(fields: [schoolId], references: [id])
+  branchId        String?
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  vehicleSyllabus VehicleSyllabus[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model weekCalendarUser {
+  id            String   @id @default(cuid())
+  slots         String[]
+  originalSlots String[]
+  canceledSlots String[]
+  holidaySlots  String[]
+  addClassSlots String[]
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model ClassHistory {
+  id        String   @id @default(cuid())
+  rating    Rating
+  feedback  String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Slots {
+  id         String        @id @default(cuid())
+  day        String
+  slotNumber String
+  time       String
+  schoolId   String
+  school     DrivingSchool @relation(fields: [schoolId], references: [id])
+  branchId   String?
+  branch     Branch?       @relation(fields: [branchId], references: [id])
+}
+
+model Calendar {
+  id             String         @id @default(cuid())
+  teacherId      String         @unique
+  teacher        Teacher        @relation(fields: [teacherId], references: [id])
+  schoolId       String
+  school         DrivingSchool  @relation(fields: [schoolId], references: [id])
+  branchId       String?
+  branch         Branch?        @relation(fields: [branchId], references: [id])
+  availableDates String[]
+  bookedDates    BookedDate[]
+  weeklySlots    WeeklySlot[]
+  canceledSlots  CanceledSlot[]
+  holidaySlots   String[]
+  addClassSlots  AddClassSlot[]
+}
+
+model BookedDate {
+  id         String   @id @default(cuid())
+  slot       String
+  courseId   String
+  userId     String?
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id])
+}
+
+model AddClassSlot {
+  id         String   @id @default(cuid())
+  slot       String
+  courseId   String
+  userId     String?
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id])
+}
+
+model CanceledSlot {
+  id         String   @id @default(cuid())
+  slot       String
+  courseId   String
+  userId     String?
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id])
+}
+
+model WeeklySlot {
+  id         String   @id @default(cuid())
+  slot       String
+  courseId   String
+  userId     String?
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id])
+}
+
+model Chat {
+  id           String   @id @default(cuid())
+  senderId     String
+  senderType   UserType
+  receiverId   String
+  receiverType UserType
+  message      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  fromUserId String?
+  toUserId   String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model LLAppn {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], name: "UserToLLAppn")
+  status            String?
+  applicationNumber String?
+  dateOfBirth       String?
+  testDate          String?
+  testTime          String?
+  testResult        String?
+  llPdfUrl          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model DLAppn {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], name: "UserToDLAppn")
+  applicationNumber String?
+  llnumber          String?
+  oldDlnumber       String?
+  dateOfBirth       String?
+  testDate          String?
+  testTime          String?
+  testResult        String?
+  dlPdfUrl          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Issue {
+  id          String        @id @default(cuid())
+  userId      String
+  schoolId    String
+  description String
+  status      String        @default("pending")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id])
+  school      DrivingSchool @relation(fields: [schoolId], references: [id])
+  branchId    String?
+  branch      Branch?       @relation(fields: [branchId], references: [id])
+}
+
+model OperatorAssistanceLog {
+  id         String   @id @default(cuid())
+  operatorId String
+  operator   Operator @relation("OperatorToAssistanceLog", fields: [operatorId], references: [id])
+  studentId  String
+  student    User     @relation("StudentToAssistanceLog", fields: [studentId], references: [id])
+  assistedAt DateTime @default(now())
+
+  @@unique([operatorId, studentId])
+}
